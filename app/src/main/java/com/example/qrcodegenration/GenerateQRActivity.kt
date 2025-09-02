@@ -167,49 +167,39 @@ class GenerateQRActivity : ComponentActivity() {
     }
 
     private fun saveToGallery(bitmap: Bitmap) {
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                // For Android 10+ (API 29+)
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, "QRCode_${System.currentTimeMillis()}.png")
-                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-                }
+        Thread {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.Images.Media.DISPLAY_NAME, "QRCode_${System.currentTimeMillis()}.png")
+                        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                    }
 
-                val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                uri?.let {
-                    contentResolver.openOutputStream(it)?.use { outputStream ->
-                        if (bitmap.compress(CompressFormat.PNG, 100, outputStream)) {
-                            Toast.makeText(this, "QR code saved to gallery", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this, "Failed to save QR code", Toast.LENGTH_SHORT).show()
+                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    uri?.let {
+                        contentResolver.openOutputStream(it)?.use { outputStream ->
+                            bitmap.compress(CompressFormat.PNG, 100, outputStream)
                         }
                     }
-                } ?: run {
-                    Toast.makeText(this, "Failed to save QR code", Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                // For Android 9 and below
-                val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val imageFile = File(imagesDir, "QRCode_${System.currentTimeMillis()}.png")
-
-                FileOutputStream(imageFile).use { outputStream ->
-                    if (bitmap.compress(CompressFormat.PNG, 100, outputStream)) {
-                        // Notify gallery
-                        MediaStore.Images.Media.insertImage(
-                            contentResolver,
-                            imageFile.absolutePath,
-                            imageFile.name,
-                            "QR Code"
-                        )
-                        Toast.makeText(this, "QR code saved to gallery", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this, "Failed to save QR code", Toast.LENGTH_SHORT).show()
+                } else {
+                    val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                    val imageFile = File(imagesDir, "QRCode_${System.currentTimeMillis()}.png")
+                    FileOutputStream(imageFile).use { outputStream ->
+                        bitmap.compress(CompressFormat.PNG, 100, outputStream)
+                        MediaStore.Images.Media.insertImage(contentResolver, imageFile.absolutePath, imageFile.name, "QR Code")
                     }
                 }
+
+                runOnUiThread {
+                    Toast.makeText(this, "QR code saved to gallery", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    Toast.makeText(this, "Failed to save QR: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Failed to save to gallery: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+        }.start()
     }
 }
