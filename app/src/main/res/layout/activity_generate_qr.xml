@@ -3,127 +3,109 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@android:color/white">
+    android:background="@drawable/bg_gradient">
 
     <LinearLayout
-        android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:gravity="center_horizontal">
 
-        <!-- Title -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Update Information"
-            android:textSize="26sp"
-            android:textColor="@android:color/black"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp" />
-
-        <!-- Name Input -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Name"
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="8dp" />
-
-        <EditText
-            android:id="@+id/nameInput"
+        <!-- Card container -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter name"
-            android:textSize="16sp"
-            android:padding="16dp"
-            android:background="@drawable/edit_text_border"
-            android:layout_marginBottom="24dp"
-            android:inputType="textPersonName"/>
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:background="@drawable/bg_card"
+            android:elevation="8dp"
+            android:clipToPadding="false"
+            android:clipChildren="false">
 
-        <!-- Phone Input -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Phone"
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="8dp" />
+            <!-- Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Update Information"
+                android:textSize="26sp"
+                android:textColor="@android:color/black"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="32dp" />
 
-        <EditText
-            android:id="@+id/phoneInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="+91 81234 56789"
-            android:inputType="phone"
-            android:textSize="16sp"
-            android:padding="16dp"
-            android:background="@drawable/edit_text_border"
-            android:layout_marginBottom="24dp" />
+            <!-- Name Input -->
+            <EditText
+                android:id="@+id/nameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Name"
+                android:textSize="16sp"
+                android:padding="16dp"
+                android:background="@drawable/edit_text_card"
+                android:layout_marginBottom="16dp"
+                android:inputType="textPersonName"/>
 
-        <!-- Car Name Input -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Car Name"
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="8dp" />
+            <!-- Phone Input -->
+            <EditText
+                android:id="@+id/phoneInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="+91 XXXXX XXXXX"
+                android:textSize="16sp"
+                android:padding="16dp"
+                android:background="@drawable/edit_text_card"
+                android:layout_marginBottom="16dp"
+                android:inputType="phone"/>
 
-        <EditText
-            android:id="@+id/carNameInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter car name"
-            android:textSize="16sp"
-            android:padding="16dp"
-            android:background="@drawable/edit_text_border"
-            android:layout_marginBottom="24dp"
-            android:inputType="text"/>
+            <!-- Car Name Input -->
+            <EditText
+                android:id="@+id/carNameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Car Name"
+                android:textSize="16sp"
+                android:padding="16dp"
+                android:background="@drawable/edit_text_card"
+                android:layout_marginBottom="16dp"
+                android:inputType="text"/>
 
-        <!-- Car Number Plate Input -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Car Number Plate"
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="8dp" />
+            <!-- Car Number Plate Input -->
+            <EditText
+                android:id="@+id/carNumberInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Car Number Plate"
+                android:textSize="16sp"
+                android:padding="16dp"
+                android:background="@drawable/edit_text_card"
+                android:layout_marginBottom="24dp"
+                android:inputType="text"/>
 
-        <EditText
-            android:id="@+id/carNumberInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter car number plate"
-            android:textSize="16sp"
-            android:padding="16dp"
-            android:background="@drawable/edit_text_border"
-            android:layout_marginBottom="32dp"
-            android:inputType="text"/>
+            <!-- Generate QR Button -->
+            <Button
+                android:id="@+id/generateButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Generate QR Code"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:padding="16dp"
+                android:background="@drawable/btn_primary"
+                android:textColor="@android:color/white"
+                android:layout_marginBottom="16dp" />
 
-        <!-- Generate QR Button -->
-        <Button
-            android:id="@+id/generateButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Generate QR Code"
-            android:textAllCaps="false"
-            android:textSize="18sp"
-            android:padding="16dp"
-            android:backgroundTint="@color/purple_500"
-            android:textColor="@android:color/white"
-            android:layout_marginBottom="16dp" />
+        </LinearLayout>
 
-        <!-- Share & Save Buttons Container -->
+        <!-- QR Actions -->
         <LinearLayout
             android:id="@+id/buttonContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone"
-            android:layout_marginBottom="24dp">
+            android:layout_marginTop="24dp"
+            android:gravity="center_horizontal">
 
             <Button
                 android:id="@+id/shareButton"
@@ -133,20 +115,21 @@
                 android:textAllCaps="false"
                 android:textSize="18sp"
                 android:padding="16dp"
-                android:backgroundTint="@color/teal_700"
-                android:textColor="@android:color/white"
+                android:background="@drawable/btn_secondary"
+                android:textColor="#1565C0"
                 android:layout_marginBottom="12dp" />
 
             <Button
                 android:id="@+id/saveButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Save QR Code"
+                android:text="Save To Gallery"
                 android:textAllCaps="false"
                 android:textSize="18sp"
                 android:padding="16dp"
-                android:backgroundTint="@color/purple_700"
+                android:background="@drawable/btn_primary"
                 android:textColor="@android:color/white" />
+
         </LinearLayout>
 
         <!-- QR Image -->

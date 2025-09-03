@@ -9,11 +9,14 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.airbnb.lottie.LottieAnimationView
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.common.HybridBinarizer
@@ -38,16 +41,67 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Animate opening screen elements
+        val qrAnimation = findViewById<LottieAnimationView>(R.id.qrIllustration)
+        val qrImage = findViewById<ImageView>(R.id.qrIllustration)
+        val title = findViewById<TextView>(R.id.appTitle)
+        val tagline = findViewById<TextView>(R.id.tagline)
+        val scanButton = findViewById<Button>(R.id.scanButton)
+        val findMyQRButton = findViewById<Button>(R.id.findMyQRButton)
+        val generateQRButton = findViewById<Button>(R.id.generateQRButton)
+
+        val buttons = listOf(scanButton, findMyQRButton, generateQRButton)
+
+        buttons.forEach { it.alpha = 0f }
+        title.alpha = 0f
+        tagline.alpha = 0f
+
+        // Step 1: Fade in title & tagline
+        qrImage.scaleX = 1.5f
+        qrImage.scaleY = 1.5f
+        qrImage.alpha = 0f
+        qrImage.animate().alpha(1f).setDuration(600).start()
+
+        title.animate().alpha(0.7f).setDuration(600).setStartDelay(400).start()
+        tagline.animate().alpha(0.7f).setDuration(600).setStartDelay(600).start()
+
+        // Step 2: After delay, shrink + move to top
+        qrImage.postDelayed({
+            qrImage.animate()
+                .scaleX(1f).scaleY(1f)
+                .translationY(-300f) // move upwards
+                .setDuration(800)
+                .start()
+
+            title.animate()
+                .translationY(-280f) // move just below QR
+                .setDuration(800)
+                .start()
+
+            tagline.animate()
+                .translationY(-270f) // tagline just below title
+                .setDuration(800)
+                .start()
+        }, 1500)
+
+        // Step 3: Fade in buttons sequentially
+        var delay = 2500L
+        for (btn in buttons) {
+            btn.animate().alpha(1f).setDuration(600).setStartDelay(delay).start()
+            delay += 200
+        }
+
+        // 🔹 Button Actions
         findViewById<Button>(R.id.scanButton).setOnClickListener {
             showScanOptions()
         }
 
-        findViewById<Button>(R.id.generateQRButton).setOnClickListener {
-            startActivity(Intent(this, GenerateQRActivity::class.java))
-        }
-
         findViewById<Button>(R.id.findMyQRButton).setOnClickListener {
             startActivity(Intent(this, FindParkingQRActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.generateQRButton).setOnClickListener {
+            startActivity(Intent(this, GenerateQRActivity::class.java))
         }
     }
 

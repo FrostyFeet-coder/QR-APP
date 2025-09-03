@@ -1,4 +1,27 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <corners android:radius="12dp"/>
-</shape>
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33000000"> <!-- Ripple effect (semi-transparent black) -->
+
+    <item>
+        <shape android:shape="rectangle">
+            <!-- Gradient background -->
+            <gradient
+                android:startColor="#6A11CB"
+                android:endColor="#2575FC"
+                android:angle="45" />
+
+            <!-- Rounded corners -->
+            <corners android:radius="16dp" />
+
+            <!-- Padding -->
+            <padding
+                android:left="16dp"
+                android:top="12dp"
+                android:right="16dp"
+                android:bottom="12dp" />
+
+            <!-- Subtle shadow -->
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+</ripple>

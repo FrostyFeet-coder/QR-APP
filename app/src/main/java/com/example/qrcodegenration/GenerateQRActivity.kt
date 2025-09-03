@@ -54,7 +54,7 @@ class GenerateQRActivity : ComponentActivity() {
 
             if (name.isNotEmpty() && phone.isNotEmpty() && carName.isNotEmpty() && carNumber.isNotEmpty()) {
                 // Format the phone number before generating QR
-                phone = formatPhoneNumberForQR(phone)
+                phone = formatPhoneNumberForQR(phone).toString()
                 val qrData = "Name: $name\nPhone: $phone\nCar Name: $carName\nCar Number: $carNumber"
                 val bitmap = generateQRBitmap(qrData)
                 currentQRBitmap = bitmap
@@ -98,27 +98,50 @@ class GenerateQRActivity : ComponentActivity() {
         return bmp
     }
 
-    private fun formatPhoneNumberForQR(phone: String): String {
-        // Remove all non-digit characters
+    private fun formatPhoneNumberForQR(phone: String): String? {
+        // Remove all non-digit except +
         var cleaned = phone.replace("[^0-9+]".toRegex(), "")
 
-        // If it already has +, return as is
+        // Agar input khali ho toh invalid
+        if (cleaned.isEmpty()) return null
+
+        // If it already has + at start
         if (cleaned.startsWith("+")) {
-            return cleaned
+            // Check if valid international format (min 8, max 15 digits after +)
+            val digits = cleaned.substring(1)
+            if (digits.length in 8..15) {
+                return cleaned
+            } else {
+                return null
+            }
         }
 
-        // For Indian numbers, ensure proper formatting
+        // Indian numbers
         if (cleaned.length == 10) {
-            // It's a 10-digit Indian number
-            return "+91$cleaned"
+            // Valid 10-digit mobile number (not starting with 0/1)
+            if (cleaned[0] in '6'..'9') {
+                return "+91$cleaned"
+            } else {
+                return null
+            }
         } else if (cleaned.startsWith("91") && cleaned.length == 12) {
-            // It's a 12-digit number starting with 91
-            return "+$cleaned"
-        } else {
-            // Add + prefix for other numbers
+            val rest = cleaned.substring(2)
+            if (rest[0] in '6'..'9') {
+                return "+$cleaned"
+            } else {
+                return null
+            }
+        }
+
+        // For other numbers (international format without +)
+        if (cleaned.length in 8..15) {
             return "+$cleaned"
         }
+
+        // Invalid case
+        return null
     }
+
 
     private fun saveQRCodeTemp(bitmap: Bitmap): File {
         try {
