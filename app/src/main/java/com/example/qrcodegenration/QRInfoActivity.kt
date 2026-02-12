@@ -12,11 +12,15 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.qrcodegenration.utils.SignalingManager
 
 class QRInfoActivity : ComponentActivity() {
 
     private val CALL_PERMISSION_CODE = 102
     private var phoneNumber: String? = null
+    private var isSecureCall = false
+    private var secureChannelId: String? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,24 +33,95 @@ class QRInfoActivity : ComponentActivity() {
         val tvOtherData = findViewById<TextView>(R.id.tvOtherData)
         val btnBack = findViewById<Button>(R.id.btnBack)
 
-        // Get the QR data from intent
         val qrData = intent.getStringExtra("QR_DATA") ?: "No data found"
-
-        // Parse and display the QR data
         parseAndDisplayQRData(qrData, tvName, tvCarName, tvCarNumber, btnCall, tvOtherData)
 
-        // Call button click listener
+        // Initialize Signaling Manager with login state tracking
+        SignalingManager.initialize(this, object : SignalingManager.SignalingListener {
+            override fun onInvitationReceived(callerId: String, channelName: String) {}
+            override fun onLoginSuccess() {
+                runOnUiThread {
+                    if (isSecureCall) {
+                        btnCall.text = "Secure In-App Call"
+                        btnCall.isEnabled = true
+                    }
+                    Toast.makeText(this@QRInfoActivity, "Connected to signaling", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onLoginError(errorCode: Int) {
+                runOnUiThread {
+                    Toast.makeText(this@QRInfoActivity, "Signaling connection failed ($errorCode)", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+
+        // Login as caller with a stable ID (not timestamp-based)
+        val callerId = "Caller_" + android.os.Build.SERIAL.hashCode()
+        SignalingManager.login(callerId)
+
+        // Disable button initially for secure calls until RTM is ready
+        if (isSecureCall) {
+            btnCall.text = "Connecting..."
+            btnCall.isEnabled = false
+        }
+
         btnCall.setOnClickListener {
-            phoneNumber?.let { number ->
-                // Show confirmation dialog before calling
-                showCallConfirmation(number)
+            if (isSecureCall && secureChannelId != null) {
+                if (!SignalingManager.isConnected()) {
+                    Toast.makeText(this, "Still connecting... please wait", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                // Send RTM Invite
+                Toast.makeText(this, "Calling...", Toast.LENGTH_SHORT).show()
+                btnCall.isEnabled = false
+                val channelName = "SecureChannel_" + System.currentTimeMillis()
+                SignalingManager.sendInvite(secureChannelId!!, channelName) { success ->
+                    runOnUiThread {
+                        btnCall.isEnabled = true
+                        if (success) {
+                            Toast.makeText(this, "Ringing...", Toast.LENGTH_LONG).show()
+                            val intent = Intent(this, CallActivity::class.java)
+                            intent.putExtra("CHANNEL_ID", channelName)
+                            intent.putExtra("IS_CALLER", true)
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(this, "Failed to connect. User might be offline.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            } else {
+                phoneNumber?.let { number ->
+                    showCallConfirmation(number)
+                }
             }
         }
 
-        // Back button click listener
         btnBack.setOnClickListener {
-            finish() // Close this activity and go back to previous
+            finish()
         }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        val btnCall = findViewById<Button>(R.id.btnCall)
+        if (isSecureCall) {
+            if (SignalingManager.isConnected()) {
+                // Already connected, enable button
+                btnCall.text = "Secure In-App Call"
+                btnCall.isEnabled = true
+            } else {
+                // Need to login
+                btnCall.text = "Reconnecting..."
+                btnCall.isEnabled = false
+                val callerId = "Caller_" + android.os.Build.SERIAL.hashCode()
+                SignalingManager.login(callerId)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Don't destroy SignalingManager here - keep the connection alive for re-calls
     }
 
     private fun parseAndDisplayQRData(
@@ -57,8 +132,38 @@ class QRInfoActivity : ComponentActivity() {
         btnCall: Button,
         tvOtherData: TextView
     ) {
-        if (rawData.contains("\n") && rawData.contains(":")) {
-            // If it's formatted data from our QR generation
+        if (rawData.startsWith("SECURE_CALL:")) {
+            isSecureCall = true
+            try {
+                val parts = rawData.split("|")
+                secureChannelId = parts[0].substringAfter("SECURE_CALL:")
+                
+                val name = parts.find { it.startsWith("Name:") }?.substringAfter("Name:") ?: "Unknown"
+                val car = parts.find { it.startsWith("Car:") }?.substringAfter("Car:") ?: ""
+                val reg = parts.find { it.startsWith("Reg:") }?.substringAfter("Reg:") ?: ""
+
+                tvName.text = "Name: $name"
+                tvName.visibility = View.VISIBLE
+                
+                if (car.isNotEmpty()) {
+                    tvCarName.text = "Car: $car"
+                    tvCarName.visibility = View.VISIBLE
+                }
+                if (reg.isNotEmpty()) {
+                    tvCarNumber.text = "Reg: $reg"
+                    tvCarNumber.visibility = View.VISIBLE
+                }
+
+                btnCall.text = "Secure In-App Call"
+                btnCall.visibility = View.VISIBLE
+                tvOtherData.visibility = View.GONE
+            } catch (e: Exception) {
+                e.printStackTrace()
+                tvOtherData.text = "Invalid Secure QR Data"
+                tvOtherData.visibility = View.VISIBLE
+            }
+
+        } else if (rawData.contains("\n") && rawData.contains(":")) {
             val lines = rawData.split("\n")
             var hasPhone = false
 
@@ -69,10 +174,8 @@ class QRInfoActivity : ComponentActivity() {
                         tvName.visibility = View.VISIBLE
                     }
                     line.startsWith("Phone:") -> {
-                        // Extract phone number but don't display it
                         val phone = line.removePrefix("Phone:").trim()
                         if (phone.isNotEmpty()) {
-                            // Clean and format the phone number
                             phoneNumber = formatPhoneNumber(phone)
                             hasPhone = true
                         }
@@ -88,13 +191,11 @@ class QRInfoActivity : ComponentActivity() {
                 }
             }
 
-            // Show call button if phone number is available
             if (hasPhone) {
                 btnCall.visibility = View.VISIBLE
             }
 
         } else if (rawData.startsWith("tel:")) {
-            // If it's a direct phone number QR
             val phone = rawData.removePrefix("tel:")
             phoneNumber = formatPhoneNumber(phone)
             btnCall.visibility = View.VISIBLE
@@ -102,52 +203,28 @@ class QRInfoActivity : ComponentActivity() {
             tvOtherData.visibility = View.VISIBLE
 
         } else {
-            // For any other type of QR data
             tvOtherData.text = "Scanned Data:\n$rawData"
             tvOtherData.visibility = View.VISIBLE
         }
     }
 
     private fun formatPhoneNumber(phone: String): String {
-        // Remove all non-digit characters
         var cleaned = phone.replace("[^0-9]".toRegex(), "")
-
-        // Handle Indian numbers specifically
-        if (cleaned.length == 10) {
-            // Add India country code if it's a 10-digit number
-            cleaned = "+91$cleaned"
-        } else if (cleaned.startsWith("91") && cleaned.length == 12) {
-            // Add + prefix if it starts with 91 and is 12 digits
-            cleaned = "+$cleaned"
-        } else if (cleaned.length >= 10 && !cleaned.startsWith("+")) {
-            // Add + prefix if it doesn't have one
-            cleaned = "+$cleaned"
-        }
-
+        if (cleaned.length == 10) cleaned = "+91$cleaned"
+        else if (cleaned.startsWith("91") && cleaned.length == 12) cleaned = "+$cleaned"
+        else if (cleaned.length >= 10 && !cleaned.startsWith("+")) cleaned = "+$cleaned"
         return cleaned
     }
 
     private fun showCallConfirmation(number: String) {
-        // Show a toast with the formatted number (without revealing full number)
-        val maskedNumber = number.takeLast(4).let { last4 ->
-            "XXXXX$last4"
-        }
+        val maskedNumber = number.takeLast(4).let { "XXXXX$it" }
         Toast.makeText(this, "Calling number ending with $maskedNumber", Toast.LENGTH_SHORT).show()
-
-        // Check permission and make call
         checkCallPermission(number)
     }
 
     private fun checkCallPermission(number: String) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CALL_PHONE),
-                CALL_PERMISSION_CODE
-            )
-            // Store the phone number temporarily
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CALL_PHONE), CALL_PERMISSION_CODE)
             this.phoneNumber = number
         } else {
             makeCall(number)
@@ -168,7 +245,7 @@ class QRInfoActivity : ComponentActivity() {
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
