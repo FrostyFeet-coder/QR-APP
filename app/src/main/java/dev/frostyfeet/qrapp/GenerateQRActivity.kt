@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.example.qrcodegenration.utils.SecurityUtils
+import dev.frostyfeet.qrapp.utils.SecurityUtils
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import java.io.File
@@ -34,7 +34,7 @@ import android.content.ContentValues
 import android.provider.MediaStore
 import java.text.SimpleDateFormat
 import java.util.*
-import com.example.qrcodegenration.service.CallService
+import dev.frostyfeet.qrapp.service.CallService
 
 class GenerateQRActivity : ComponentActivity() {
 

@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import com.journeyapps.barcodescanner.CaptureActivity
 

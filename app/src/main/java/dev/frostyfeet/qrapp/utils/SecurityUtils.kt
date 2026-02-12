@@ -1,4 +1,4 @@
-package com.example.qrcodegenration.utils
+package dev.frostyfeet.qrapp.utils
 
 import android.util.Base64
 

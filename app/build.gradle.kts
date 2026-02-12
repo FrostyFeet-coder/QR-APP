@@ -13,11 +13,11 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.qrcodegenration"
+    namespace = "dev.frostyfeet.qrapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.qrcodegenration"
+        applicationId = "dev.frostyfeet.qrapp"
         minSdk = 24
         targetSdk = 33
         versionCode = 1

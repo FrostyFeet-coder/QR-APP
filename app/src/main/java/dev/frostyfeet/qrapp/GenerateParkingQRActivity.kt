@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import android.Manifest
 import android.content.ContentValues

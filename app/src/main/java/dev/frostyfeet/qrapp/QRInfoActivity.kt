@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import android.Manifest
 import android.content.Intent
@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.qrcodegenration.utils.SignalingManager
+import dev.frostyfeet.qrapp.utils.SignalingManager
 
 class QRInfoActivity : ComponentActivity() {
 
