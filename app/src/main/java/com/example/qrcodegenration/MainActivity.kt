@@ -155,6 +155,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleQR(data: String) {
+        if (data.startsWith("SECURE_CALL:")) {
+            // Format: SECURE_CALL:maskedPhone|Name:name|...
+            try {
+                // We keep the raw data string for QRInfoActivity to parse and show
+                val intent = Intent(this, QRInfoActivity::class.java)
+                intent.putExtra("QR_DATA", data) // Pass the full secure string
+                startActivity(intent)
+                return 
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Invalid Secure QR", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         val intent = Intent(this, QRInfoActivity::class.java)
         intent.putExtra("QR_DATA", data)
         startActivity(intent)
@@ -166,7 +180,7 @@ class MainActivity : ComponentActivity() {
         startActivity(callIntent)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             CAMERA_PERMISSION_CODE -> {

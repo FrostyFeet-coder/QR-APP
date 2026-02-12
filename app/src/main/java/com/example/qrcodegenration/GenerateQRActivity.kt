@@ -1,28 +1,40 @@
 package com.example.qrcodegenration
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.core.view.isVisible
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import com.example.qrcodegenration.utils.SecurityUtils
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
-import android.content.Intent
-import android.net.Uri
-import java.io.OutputStream
 import java.io.File
 import java.io.FileOutputStream
 import android.os.Environment
-import androidx.core.content.FileProvider
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import android.provider.MediaStore
 import android.content.ContentValues
-import android.graphics.Bitmap.CompressFormat
+import android.provider.MediaStore
+import java.text.SimpleDateFormat
+import java.util.*
+import com.example.qrcodegenration.service.CallService
 
 class GenerateQRActivity : ComponentActivity() {
 
@@ -31,58 +43,242 @@ class GenerateQRActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_generate_qr)
+        setContent {
+            GenerateQRScreen()
+        }
+    }
 
-        val nameInput = findViewById<EditText>(R.id.nameInput)
-        val phoneInput = findViewById<EditText>(R.id.phoneInput)
-        val carNameInput = findViewById<EditText>(R.id.carNameInput)
-        val carNumberInput = findViewById<EditText>(R.id.carNumberInput)
-        val generateButton = findViewById<Button>(R.id.generateButton)
-        val shareButton = findViewById<Button>(R.id.shareButton)
-        val saveButton = findViewById<Button>(R.id.saveButton)
-        val buttonContainer = findViewById<android.widget.LinearLayout>(R.id.buttonContainer)
-        val imageView = findViewById<ImageView>(R.id.qrImage)
+    @Composable
+    fun GenerateQRScreen() {
+        var name by remember { mutableStateOf("") }
+        var phone by remember { mutableStateOf("") }
+        var carName by remember { mutableStateOf("") }
+        var carNumber by remember { mutableStateOf("") }
+        var isSecureCallEnabled by remember { mutableStateOf(true) }
+        var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
+        val scrollState = rememberScrollState()
+        
+        // Service State
+        var isOnline by remember { mutableStateOf(false) }
 
-        // Initially hide the buttons
-        buttonContainer.isVisible = false
+        val context = LocalContext.current
 
-        generateButton.setOnClickListener {
-            val name = nameInput.text.toString()
-            var phone = phoneInput.text.toString()
-            val carName = carNameInput.text.toString()
-            val carNumber = carNumberInput.text.toString()
+        // App Background Gradient: #BBDEFB (Top) -> #64B5F6 (Bottom)
+        val bgBrush = Brush.verticalGradient(
+            colors = listOf(Color(0xFFBBDEFB), Color(0xFF64B5F6))
+        )
 
-            if (name.isNotEmpty() && phone.isNotEmpty() && carName.isNotEmpty() && carNumber.isNotEmpty()) {
-                // Format the phone number before generating QR
-                phone = formatPhoneNumberForQR(phone).toString()
-                val qrData = "Name: $name\nPhone: $phone\nCar Name: $carName\nCar Number: $carNumber"
-                val bitmap = generateQRBitmap(qrData)
-                currentQRBitmap = bitmap
-                imageView.setImageBitmap(bitmap)
-                imageView.isVisible = true
-                buttonContainer.isVisible = true
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(bgBrush)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                Text(
+                    text = "Generate QR Code",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                )
 
-                // Save the QR code temporarily for sharing
-                currentQRFile = saveQRCodeTemp(bitmap)
-            } else {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                Text(
+                    text = "Enter details below to create your parking QR",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color(0xFF444444)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                StyledTextField(value = name, onValueChange = { name = it }, label = "Name")
+                StyledTextField(value = phone, onValueChange = { phone = it }, label = "Phone")
+                StyledTextField(value = carName, onValueChange = { carName = it }, label = "Car Name")
+                StyledTextField(value = carNumber, onValueChange = { carNumber = it }, label = "Car Number")
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                PrimaryButton(text = "Generate QR Code") {
+                    if (name.isNotEmpty() && phone.isNotEmpty() && carName.isNotEmpty() && carNumber.isNotEmpty()) {
+                        val formattedPhone = phone
+                        
+                        val qrData = if (isSecureCallEnabled) {
+                            val maskedPhone = SecurityUtils.maskData(formattedPhone)
+                            "SECURE_CALL:$maskedPhone|Name:$name|Car:$carName|Reg:$carNumber"
+                        } else {
+                            "Name: $name\nPhone: $formattedPhone\nCar Name: $carName\nCar Number: $carNumber"
+                        }
+
+                        qrBitmap = generateQRBitmap(qrData)
+                        currentQRBitmap = qrBitmap
+                        currentQRFile = saveQRCodeTemp(qrBitmap!!)
+                    } else {
+                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                qrBitmap?.let { bitmap ->
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    Card(
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "QR Code",
+                            modifier = Modifier.size(220.dp).padding(16.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        SecondaryButton(text = "Share", modifier = Modifier.weight(1f)) {
+                            currentQRFile?.let { shareQRCode(it) }
+                        }
+                        SecondaryButton(text = "Save", modifier = Modifier.weight(1f)) {
+                            currentQRBitmap?.let { saveToGallery(it) }
+                        }
+                    }
+
+                    if (isSecureCallEnabled) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Secure Call Status",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                if (isOnline) {
+                                    Text("You are ONLINE. You will receive a notification when someone scans your QR.",
+                                        color = Color(0xFF4CAF50),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            isOnline = false
+                                            val intent = Intent(context, CallService::class.java)
+                                            context.stopService(intent)
+                                            Toast.makeText(context, "You are now Offline", Toast.LENGTH_SHORT).show()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                                        shape = RoundedCornerShape(24.dp)
+                                    ) {
+                                        Text("Go Offline")
+                                    }
+                                } else {
+                                    Text("Go Online to receive calls via notification without sharing your number.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            val maskedPhone = SecurityUtils.maskData(phone)
+                                            // Optimistic update, but actual status depends on Service
+                                            isOnline = true 
+                                            val intent = Intent(context, CallService::class.java)
+                                            intent.putExtra("USER_ID", maskedPhone)
+                                            context.startForegroundService(intent) // Updated to startForegroundService
+                                            Toast.makeText(context, "Starting Service...", Toast.LENGTH_SHORT).show()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                        shape = RoundedCornerShape(24.dp)
+                                    ) {
+                                        Text("Go Online")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
             }
         }
+    }
 
-        shareButton.setOnClickListener {
-            currentQRFile?.let { file ->
-                shareQRCode(file)
-            } ?: run {
-                Toast.makeText(this, "Generate a QR code first", Toast.LENGTH_SHORT).show()
+    @Composable
+    fun StyledTextField(value: String, onValueChange: (String) -> Unit, label: String) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                unfocusedContainerColor = Color.White.copy(alpha = 0.6f),
+                focusedBorderColor = Color(0xFF1565C0),
+                unfocusedBorderColor = Color.Gray
+            ),
+            singleLine = true
+        )
+    }
+
+    @Composable
+    fun PrimaryButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+        Button(
+            onClick = onClick,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent
+            ),
+            contentPadding = PaddingValues()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1565C0), Color(0xFF42A5F5))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
+    }
 
-        saveButton.setOnClickListener {
-            currentQRBitmap?.let { bitmap ->
-                saveToGallery(bitmap)
-            } ?: run {
-                Toast.makeText(this, "Generate a QR code first", Toast.LENGTH_SHORT).show()
-            }
+    @Composable
+    fun SecondaryButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(55.dp),
+            shape = RoundedCornerShape(24.dp),
+            border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1565C0)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Color.White,
+                contentColor = Color(0xFF1565C0)
+            )
+        ) {
+            Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 
@@ -98,131 +294,39 @@ class GenerateQRActivity : ComponentActivity() {
         return bmp
     }
 
-    private fun formatPhoneNumberForQR(phone: String): String? {
-        // Remove all non-digit except +
-        var cleaned = phone.replace("[^0-9+]".toRegex(), "")
-
-        // Agar input khali ho toh invalid
-        if (cleaned.isEmpty()) return null
-
-        // If it already has + at start
-        if (cleaned.startsWith("+")) {
-            // Check if valid international format (min 8, max 15 digits after +)
-            val digits = cleaned.substring(1)
-            if (digits.length in 8..15) {
-                return cleaned
-            } else {
-                return null
-            }
-        }
-
-        // Indian numbers
-        if (cleaned.length == 10) {
-            // Valid 10-digit mobile number (not starting with 0/1)
-            if (cleaned[0] in '6'..'9') {
-                return "+91$cleaned"
-            } else {
-                return null
-            }
-        } else if (cleaned.startsWith("91") && cleaned.length == 12) {
-            val rest = cleaned.substring(2)
-            if (rest[0] in '6'..'9') {
-                return "+$cleaned"
-            } else {
-                return null
-            }
-        }
-
-        // For other numbers (international format without +)
-        if (cleaned.length in 8..15) {
-            return "+$cleaned"
-        }
-
-        // Invalid case
-        return null
-    }
-
-
     private fun saveQRCodeTemp(bitmap: Bitmap): File {
-        try {
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "QRCode_$timeStamp.png"
-            val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-            val imageFile = File(storageDir, fileName)
-
-            val outputStream: OutputStream = FileOutputStream(imageFile)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            outputStream.flush()
-            outputStream.close()
-
-            return imageFile
-        } catch (e: Exception) {
-            throw e
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "QRCode_$timeStamp.png"
+        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        val imageFile = File(storageDir, fileName)
+        FileOutputStream(imageFile).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }
+        return imageFile
     }
 
-    private fun shareQRCode(imageFile: File) {
-        try {
-            // Get the URI using FileProvider
-            val imageUri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
-                imageFile
-            )
-
-            // Create a share intent
-            val shareIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_STREAM, imageUri)
-                type = "image/png"
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            // Create a chooser intent
-            val chooserIntent = Intent.createChooser(shareIntent, "Share QR Code")
-
-            // Start the activity
-            startActivity(chooserIntent)
-
-        } catch (e: Exception) {
-            Toast.makeText(this, "Failed to share QR code: ${e.message}", Toast.LENGTH_SHORT).show()
+    private fun shareQRCode(file: File) {
+        val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+        startActivity(Intent.createChooser(intent, "Share QR Code"))
     }
 
     private fun saveToGallery(bitmap: Bitmap) {
-        Thread {
-            try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                    val contentValues = ContentValues().apply {
-                        put(MediaStore.Images.Media.DISPLAY_NAME, "QRCode_${System.currentTimeMillis()}.png")
-                        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-                    }
-
-                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                    uri?.let {
-                        contentResolver.openOutputStream(it)?.use { outputStream ->
-                            bitmap.compress(CompressFormat.PNG, 100, outputStream)
-                        }
-                    }
-                } else {
-                    val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                    val imageFile = File(imagesDir, "QRCode_${System.currentTimeMillis()}.png")
-                    FileOutputStream(imageFile).use { outputStream ->
-                        bitmap.compress(CompressFormat.PNG, 100, outputStream)
-                        MediaStore.Images.Media.insertImage(contentResolver, imageFile.absolutePath, imageFile.name, "QR Code")
-                    }
-                }
-
-                runOnUiThread {
-                    Toast.makeText(this, "QR code saved to gallery", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                runOnUiThread {
-                    Toast.makeText(this, "Failed to save QR: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "QRCode_${System.currentTimeMillis()}.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+        }
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
             }
-        }.start()
+            runOnUiThread { Toast.makeText(this, "Saved to Gallery", Toast.LENGTH_SHORT).show() }
+        }
     }
 }
