@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import android.content.Intent
 import android.media.MediaPlayer

@@ -1,4 +1,4 @@
-package com.example.qrcodegenration.service
+package dev.frostyfeet.qrapp.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,9 +11,9 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.qrcodegenration.IncomingCallActivity
-import com.example.qrcodegenration.R
-import com.example.qrcodegenration.utils.SignalingManager
+import dev.frostyfeet.qrapp.IncomingCallActivity
+import dev.frostyfeet.qrapp.R
+import dev.frostyfeet.qrapp.utils.SignalingManager
 
 class CallService : Service(), SignalingManager.SignalingListener {
 

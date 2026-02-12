@@ -1,8 +1,8 @@
-package com.example.qrcodegenration.utils
+package dev.frostyfeet.qrapp.utils
 
 import android.content.Context
 import android.util.Log
-import com.example.qrcodegenration.BuildConfig
+import dev.frostyfeet.qrapp.BuildConfig
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
 import io.agora.rtc2.RtcEngine

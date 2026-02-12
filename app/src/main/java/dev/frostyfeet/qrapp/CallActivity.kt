@@ -1,4 +1,4 @@
-package com.example.qrcodegenration
+package dev.frostyfeet.qrapp
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.example.qrcodegenration.utils.VoIPManager
+import dev.frostyfeet.qrapp.utils.VoIPManager
 import io.agora.rtc2.IRtcEngineEventHandler
 
 class CallActivity : ComponentActivity() {
