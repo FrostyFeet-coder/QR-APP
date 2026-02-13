@@ -33,7 +33,7 @@ class CallService : Service(), SignalingManager.SignalingListener {
         if (userId != null) {
             SignalingManager.login(userId)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIFICATION_ID, createForegroundNotification("Online and waiting for calls..."), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                startForeground(NOTIFICATION_ID, createForegroundNotification("Online and waiting for calls..."), ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
             } else {
                 startForeground(NOTIFICATION_ID, createForegroundNotification("Online and waiting for calls..."))
             }

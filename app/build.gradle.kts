@@ -20,8 +20,8 @@ android {
         applicationId = "dev.frostyfeet.qrapp"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
         buildConfigField("String", "AGORA_APP_ID", "\"${localProperties.getProperty("AGORA_APP_ID", "")}\"")
     }
 
